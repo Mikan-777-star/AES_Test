@@ -138,13 +138,10 @@ int main() {
     uint8_t ciphertext[AES_BLOCK_SIZE];
 
     char print_buf[1024];
-
-    AES_Encrypt(plaintext, ciphertext, key);
-
-    printf("plaintext = %s,",memorydump(print_buf, plaintext, AES_BLOCK_SIZE));
-    printf("%s\n",textPrint(print_buf, plaintext, AES_BLOCK_SIZE));
-    printf("ciphertext = %s", memorydump(print_buf, ciphertext, AES_BLOCK_SIZE));
-    printf("%s\n",textPrint(print_buf, ciphertext, AES_BLOCK_SIZE));
+    for(int i = 0; i < 100; i++){
+        AES_Encrypt(plaintext, ciphertext, key);
+        printf("ciphertext = %s\n", memorydump(print_buf, ciphertext, AES_BLOCK_SIZE));
+    }
     // Now ciphertext contains the encrypted data
     return 0;
 }
