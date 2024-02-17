@@ -36,7 +36,7 @@ void Create_roundkey(uint8_t* before_key, uint8_t* roundkey){
 void KeyExpansion(const uint8_t* key, uint8_t roundKeys[]){
     memcpy(roundKeys , key, AES_BLOCK_SIZE);
     for(int i = 1; i < AES_ROUNDS; i++){
-        
+        roundKeys[]
     }
 }
 
