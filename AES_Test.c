@@ -36,24 +36,62 @@ void Create_roundkey(uint8_t* before_key, uint8_t* roundkey){
 void KeyExpansion(const uint8_t* key, uint8_t roundKeys[]){
     memcpy(roundKeys , key, AES_BLOCK_SIZE);
     for(int i = 1; i < AES_ROUNDS; i++){
-        roundKeys[]
+        Create_roundkey(&roundKeys[(i - 1) * AES_BLOCK_SIZE],&roundKeys[i * AES_BLOCK_SIZE]);
     }
 }
 
 void AddRoundKey(uint8_t* state, const uint8_t* roundKey){
+    for(int i = 0; i < AES_BLOCK_SIZE; i++){
+        state[i] = state[i] ^ roundKey[i]; 
+    }
+}
 
+void junkan_shift_left(uint32_t* state, uint8_t target){
+    *state = *state << target | (*state >> (32 - target));
 }
 
 void SubBytes(uint8_t* state){
-
+    for(int i = 0; i < AES_BLOCK_SIZE; i++){
+        state[i] = SBOX[state[i]];
+    }
 }
 
 void ShiftRows(uint8_t* state){
-
+    uint32_t* ans = (uint32_t*)state;
+    for(int i = 3; i >= 0; i--){
+        junkan_shift_left(&ans[i], i * 8);
+    }
 }
 
-void MixColumns(uint8_t* state){
+uint8_t gf_mul(uint8_t a, uint8_t b){
+    uint8_t product = 0;
+    for(int i = 0; i < 8; i++){
+        if(b & 1){
+            product ^= a;
+        }
+        uint8_t carry = a & 0x80;
+        a <<= 1;
+        if(carry){
+            a ^=0x1b;
+        }
+        b >>= 1;
+    }
+    return product;
+}
 
+void MixColumns(uint8_t state[4][4]){
+    uint8_t tmp[4][4];
+    for (int c = 0; c < 4; c++) {
+        tmp[0][c] = gf_mul(0x02, state[0][c]) ^ gf_mul(0x03, state[1][c]) ^ state[2][c] ^ state[3][c];
+        tmp[1][c] = state[0][c] ^ gf_mul(0x02, state[1][c]) ^ gf_mul(0x03, state[2][c]) ^ state[3][c];
+        tmp[2][c] = state[0][c] ^ state[1][c] ^ gf_mul(0x02, state[2][c]) ^ gf_mul(0x03, state[3][c]);
+        tmp[3][c] = gf_mul(0x03, state[0][c]) ^ state[1][c] ^ state[2][c] ^ gf_mul(0x02, state[3][c]);
+    }
+    for (int r = 0; r < 4; r++) {
+        for (int c = 0; c < 4; c++) {
+            state[r][c] = tmp[r][c];
+        }
+    }
 }
 
 void AES_Encrypt(const uint8_t* in, uint8_t* out, const uint8_t* key){
@@ -69,7 +107,7 @@ void AES_Encrypt(const uint8_t* in, uint8_t* out, const uint8_t* key){
     for(int round = 0; round < AES_ROUNDS; round++){
         SubBytes(state);
         ShiftRows(state);
-        MixColumns(state);
+        MixColumns((unsigned char (*)[4])state);
         AddRoundKey(state, roundKeys + round * AES_BLOCK_SIZE);
     }
 
@@ -79,3 +117,34 @@ void AES_Encrypt(const uint8_t* in, uint8_t* out, const uint8_t* key){
     memcpy(out, state, AES_BLOCK_SIZE);
 }
 
+#include <stdio.h>
+char* memorydump(char* buf, uint8_t* array, int len){
+    for(int i = 0; i < len; i++){
+        sprintf(buf + (i * 6), "0x%02hx, ", array[i]);
+    }
+    return buf;
+}
+char* textPrint(char* buf, uint8_t* text, int len){
+    for(int i = 0; i < len; i++){
+        buf[i] = text[i];
+    }
+    buf[len] = '\0';
+    return buf;
+}
+// Example usage
+int main() {
+    uint8_t key[AES_KEY_LEN] = "1234567890laoed";
+    uint8_t plaintext[AES_BLOCK_SIZE] = "Hello world AES";
+    uint8_t ciphertext[AES_BLOCK_SIZE];
+
+    char print_buf[1024];
+
+    AES_Encrypt(plaintext, ciphertext, key);
+
+    printf("plaintext = %s,",memorydump(print_buf, plaintext, AES_BLOCK_SIZE));
+    printf("%s\n",textPrint(print_buf, plaintext, AES_BLOCK_SIZE));
+    printf("ciphertext = %s", memorydump(print_buf, ciphertext, AES_BLOCK_SIZE));
+    printf("%s\n",textPrint(print_buf, ciphertext, AES_BLOCK_SIZE));
+    // Now ciphertext contains the encrypted data
+    return 0;
+}
