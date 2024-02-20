@@ -187,7 +187,7 @@ void AES_Encrypt(const uint8_t* in, uint8_t* out, const uint8_t* key){
         MixColumns((unsigned char (*)[4])state);
         AddRoundKey(state, roundKeys + round * AES_BLOCK_SIZE);
     }
-
+    
     SubBytes(state);
     ShiftRows(state);
     AddRoundKey(state, roundKeys + AES_ROUNDS * AES_BLOCK_SIZE);
